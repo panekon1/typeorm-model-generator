@@ -2,6 +2,7 @@ import { ColumnType } from "typeorm";
 
 export type Column = {
     tscType: string;
+    gqlType?: string;
     tscName: string;
     type: ColumnType | string; // TODO: remove ?
     isUsedInRelationAsOwner?: true; // TODO: move to separate object/calulate when us

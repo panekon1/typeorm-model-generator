@@ -1,0 +1,30 @@
+{{#*inline "Import"}}
+import {{localImport (toDtoName .)}} from './{{toDtoFileName .}}'
+{{/inline}}
+
+{{#*inline "Field"}}
+@Field(() => {{gqlType}})
+{{printPropertyVisibility}}{{toPropertyName tscName}}{{strictMode}}:{{tscType}}{{#if options.nullable}} | null{{/if}};
+
+{{/inline}}
+
+{{#*inline "Relation"}}
+@Field(()=>{{toDtoName relatedTable}})
+{{printPropertyVisibility}}{{toPropertyName fieldName}}{{strictMode}}:{{toRelation (toDtoName relatedTable) relationType}};
+
+{{/inline}}
+
+{{#*inline "Entity"}}
+@ObjectType
+export {{defaultExport}} class {{toDtoName tscName}}{{#activeRecord}} extends BaseEntity{{/activeRecord}} {
+
+{{#columns}}{{> Field}}{{/columns~}}
+{{#relations}}{{> Relation}}{{/relations~}}
+{{#relationIds}}{{> RelationId entityName=../tscName}}{{/relationIds~}}
+}
+{{/inline}}
+
+import {Boolean,Field,Float,Int,ObjectType,String} from "@nestjs/graphql";
+{{#fileImports}}{{> Import}}{{/fileImports}}
+
+{{> Entity}}

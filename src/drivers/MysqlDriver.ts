@@ -92,6 +92,7 @@ export default class MysqlDriver extends AbstractDriver {
                 .forEach((resp) => {
                     const tscName = resp.COLUMN_NAME;
                     let tscType = "";
+                    let gqlType = "";
                     const options: Column["options"] = {
                         name: resp.COLUMN_NAME,
                     };
@@ -110,84 +111,110 @@ export default class MysqlDriver extends AbstractDriver {
                     switch (resp.DATA_TYPE) {
                         case "int":
                             tscType = "number";
+                            gqlType = "Int";
                             break;
                         case "bit":
                             if (resp.COLUMN_TYPE === "bit(1)") {
                                 tscType = "boolean";
+                                gqlType = "Boolean";
                             } else {
                                 tscType = "number";
+                                gqlType = "Int";
                             }
                             break;
                         case "tinyint":
                             if (resp.COLUMN_TYPE === "tinyint(1)") {
                                 options.width = 1;
                                 tscType = "boolean";
+                                gqlType = "Boolean";
                             } else {
                                 tscType = "number";
+                                gqlType = "Int";
                             }
                             break;
                         case "smallint":
                             tscType = "number";
+                            gqlType = "Int";
                             break;
                         case "mediumint":
                             tscType = "number";
+                            gqlType = "Int";
                             break;
                         case "bigint":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "float":
                             tscType = "number";
+                            gqlType = "Float";
                             break;
                         case "double":
                             tscType = "number";
+                            gqlType = "Float";
                             break;
                         case "decimal":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "date":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "datetime":
                             tscType = "Date";
+                            gqlType = "String";
                             break;
                         case "timestamp":
                             tscType = "Date";
+                            gqlType = "String";
                             break;
                         case "time":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "year":
                             tscType = "number";
+                            gqlType = "Int";
                             break;
                         case "char":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "varchar":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "blob":
                             tscType = "Buffer";
+                            gqlType = "String";
                             break;
                         case "text":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "tinyblob":
                             tscType = "Buffer";
+                            gqlType = "String";
                             break;
                         case "tinytext":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "mediumblob":
                             tscType = "Buffer";
+                            gqlType = "String";
                             break;
                         case "mediumtext":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "longblob":
                             tscType = "Buffer";
+                            gqlType = "String";
                             break;
                         case "longtext":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "enum":
                             tscType = resp.COLUMN_TYPE.substring(
@@ -202,6 +229,7 @@ export default class MysqlDriver extends AbstractDriver {
                             )
                                 .replace(/'/gi, "")
                                 .split(",");
+                            gqlType = "String";
                             break;
                         case "set":
                             tscType = `(${resp.COLUMN_TYPE.substring(
@@ -216,44 +244,57 @@ export default class MysqlDriver extends AbstractDriver {
                             )
                                 .replace(/'/gi, "")
                                 .split(",");
+                            gqlType = "String";
                             break;
                         case "json":
                             tscType = "object";
+                            gqlType = "String";
                             break;
                         case "binary":
                             tscType = "Buffer";
+                            gqlType = "String";
                             break;
                         case "varbinary":
                             tscType = "Buffer";
+                            gqlType = "String";
                             break;
                         case "geometry":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "point":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "linestring":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "polygon":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "multipoint":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "multilinestring":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "multipolygon":
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         case "geometrycollection":
                         case "geomcollection":
                             columnType = "geometrycollection";
                             tscType = "string";
+                            gqlType = "String";
                             break;
                         default:
                             tscType = "NonNullable<unknown>";
+                            gqlType = "String";
                             TomgUtils.LogError(
                                 `Unknown column type: ${resp.DATA_TYPE}  table name: ${resp.TABLE_NAME} column name: ${resp.COLUMN_NAME}`
                             );
@@ -297,6 +338,7 @@ export default class MysqlDriver extends AbstractDriver {
                         options,
                         tscName,
                         tscType,
+                        gqlType,
                     });
                 });
         });

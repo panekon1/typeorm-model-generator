@@ -11,6 +11,7 @@ import SqliteDriver from "./drivers/SqliteDriver";
 import modelCustomizationPhase from "./ModelCustomization";
 import modelGenerationPhase from "./ModelGeneration";
 import { Entity } from "./models/Entity";
+import dtoGenerationPhase from "./DtoGeneration";
 
 export function createDriver(driverName: string): AbstractDriver {
     switch (driverName) {
@@ -55,6 +56,7 @@ export async function createModelFromDatabase(
         driver.defaultValues
     );
     modelGenerationPhase(connectionOptions, generationOptions, dbModel);
+    dtoGenerationPhase(connectionOptions, generationOptions, dbModel);
 }
 export async function dataCollectionPhase(
     driver: AbstractDriver,
