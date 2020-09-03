@@ -1,14 +1,13 @@
-import * as Handlebars from "handlebars";
-import * as Prettier from "prettier";
 import * as changeCase from "change-case";
 import * as fs from "fs";
-import * as path from "path";
+import * as Handlebars from "handlebars";
 import { EOL } from "os";
+import * as path from "path";
+import * as Prettier from "prettier";
 import IConnectionOptions from "./IConnectionOptions";
 import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
 import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
-import { toDirName } from "./common";
 
 const prettierOptions: Prettier.Options = {
     parser: "typescript",
@@ -34,6 +33,10 @@ export default function modelGenerationPhase(
         createIndexFile(databaseModel, generationOptions, resultPath);
     }
     generateModels(databaseModel, generationOptions, resultPath);
+}
+
+function toDirName(tscName: string) {
+    return changeCase.paramCase(tscName);
 }
 
 function generateModels(

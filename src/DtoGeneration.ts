@@ -8,7 +8,6 @@ import IConnectionOptions from "./IConnectionOptions";
 import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
 import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
-import { toDirName } from "./common";
 
 const prettierOptions: Prettier.Options = {
     parser: "typescript",
@@ -24,9 +23,53 @@ export default function dtoGenerationPhase(
 
     const resultPath = generationOptions.resultsPath;
     if (!fs.existsSync(resultPath)) {
-        fs.mkdirSync(resultPath);
+        fs.mkdirSync(resultPath, { recursive: true });
     }
     generateDtos(databaseModel, generationOptions, resultPath);
+}
+
+function generateDtos(
+    databaseModel: Entity[],
+    generationOptions: IGenerationOptions,
+    entitiesPath: string
+) {
+    const dtoTemplatePath = path.resolve(__dirname, "templates", "dto.mst");
+    const dtoTemplate = fs.readFileSync(dtoTemplatePath, "utf-8");
+    const dtoCompiledTemplate = Handlebars.compile(dtoTemplate, {
+        noEscape: true,
+    });
+    const dtoEditTemplatePath = path.resolve(
+        __dirname,
+        "templates",
+        "dto-edit.mst"
+    );
+    const dtoEditTemplate = fs.readFileSync(dtoEditTemplatePath, "utf-8");
+    const dtoEditCompiledTemplate = Handlebars.compile(dtoEditTemplate, {
+        noEscape: true,
+    });
+    databaseModel.forEach((element) => {
+        const dirName = toDtoDirName(element.tscName);
+        const dirPath = path.resolve(entitiesPath, dirName);
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
+        const dtoFileName = toDtoFilename(element.tscName);
+        const dtoFilePath = path.resolve(dirPath, `${dtoFileName}.ts`);
+        const dtoEditFileName = toDtoEditFilename(element.tscName);
+        const dtoEditFilePath = path.resolve(dirPath, `${dtoEditFileName}.ts`);
+        generateDto(
+            element,
+            generationOptions,
+            dtoFilePath,
+            dtoCompiledTemplate
+        );
+        generateDto(
+            element,
+            generationOptions,
+            dtoEditFilePath,
+            dtoEditCompiledTemplate
+        );
+    });
 }
 
 function generateDto(
@@ -61,50 +104,6 @@ function generateDto(
     });
 }
 
-function generateDtos(
-    databaseModel: Entity[],
-    generationOptions: IGenerationOptions,
-    entitiesPath: string
-) {
-    const dtoTemplatePath = path.resolve(__dirname, "templates", "dto.mst");
-    const dtoTemplate = fs.readFileSync(dtoTemplatePath, "utf-8");
-    const dtoCompiledTemplate = Handlebars.compile(dtoTemplate, {
-        noEscape: true,
-    });
-    const dtoEditTemplatePath = path.resolve(
-        __dirname,
-        "templates",
-        "dto-edit.mst"
-    );
-    const dtoEditTemplate = fs.readFileSync(dtoEditTemplatePath, "utf-8");
-    const dtoEditCompiledTemplate = Handlebars.compile(dtoEditTemplate, {
-        noEscape: true,
-    });
-    databaseModel.forEach((element) => {
-        const dirName = toDirName(element.tscName);
-        const dirPath = path.resolve(entitiesPath, dirName);
-        if (!fs.existsSync(dirPath)) {
-            fs.mkdirSync(dirPath);
-        }
-        const dtoFileName = toDtoFilename(element.tscName);
-        const dtoFilePath = path.resolve(dirPath, `${dtoFileName}.ts`);
-        const dtoEditFileName = toDtoEditFilename(element.tscName);
-        const dtoEditFilePath = path.resolve(dirPath, `${dtoEditFileName}.ts`);
-        generateDto(
-            element,
-            generationOptions,
-            dtoFilePath,
-            dtoCompiledTemplate
-        );
-        generateDto(
-            element,
-            generationOptions,
-            dtoEditFilePath,
-            dtoEditCompiledTemplate
-        );
-    });
-}
-
 function removeUnusedImports(rendered: string) {
     const openBracketIndex = rendered.indexOf("{") + 1;
     const closeBracketIndex = rendered.indexOf("}");
@@ -120,6 +119,10 @@ function removeUnusedImports(rendered: string) {
     return `${rendered.substring(0, openBracketIndex)}${distinctImports.join(
         ","
     )}${restOfEntityDefinition}`;
+}
+
+function toDtoDirName(tscName: string) {
+    return `${changeCase.paramCase(tscName)}/dto`;
 }
 
 function toDtoName(str) {
@@ -142,7 +145,7 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
     });
     Handlebars.registerHelper("toDtoName", toDtoName);
     Handlebars.registerHelper("toDtoFileName", toDtoFilename);
-    Handlebars.registerHelper("toDirName", toDirName);
+    Handlebars.registerHelper("toDtoDirName", toDtoDirName);
     Handlebars.registerHelper("printPropertyVisibility", () =>
         generationOptions.propertyVisibility !== "none"
             ? `${generationOptions.propertyVisibility} `

@@ -1,5 +1,5 @@
 {{#*inline "Import"}}
-import {{localImport (toDtoName .)}} from '../{{toDirName .}}/{{toDtoFileName .}}'
+import {{localImport (toDtoName .)}} from '../../{{toDtoDirName .}}/{{toDtoFileName .}}'
 {{/inline}}
 
 {{#*inline "Field"}}
