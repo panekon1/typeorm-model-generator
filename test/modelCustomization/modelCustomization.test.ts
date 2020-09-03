@@ -51,7 +51,8 @@ describe("Model customization phase", async () => {
                     fieldName: "Post",
                     relatedField: "authorId",
                     relatedTable: "Post",
-                    relationType: "OneToMany"
+                    relationType: "OneToMany",
+                    isOneToMany: true,
                 }
             ],
             relationIds: [],
@@ -105,7 +106,8 @@ describe("Model customization phase", async () => {
                         { name: "authorId", referencedColumnName: "id" }
                     ],
                     relatedTable: "PostAuthor",
-                    relationType: "ManyToOne"
+                    relationType: "ManyToOne",
+                    isOneToMany: false,
                 }
             ],
             relationIds: [],

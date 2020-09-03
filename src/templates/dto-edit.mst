@@ -1,6 +1,6 @@
 {{#*inline "Field"}}
 {{^generated}}
-@Field(() => {{gqlType}})
+@Field(() => {{gqlType}}, { nullable: true })
 {{printPropertyVisibility}}{{toPropertyName tscName}}?{{strictMode}}:{{tscType}}{{#if options.nullable}} | null{{/if}};
 {{/generated}}
 
@@ -8,7 +8,7 @@
 
 {{#*inline "Relation"}}
 {{^isOneToMany}}
-@Field(()=>{{toRelationIdGqlType relationType}})
+@Field(()=>{{toRelationIdGqlType relationType}}, { nullable: true })
 {{printPropertyVisibility}}{{toPropertyName fieldName}}?{{strictMode}}:{{toRelationId relationType}};
 {{/isOneToMany}}
 
@@ -16,7 +16,7 @@
 
 {{#*inline "Entity"}}
 @InputType()
-export {{defaultExport}} class {{toDtoName tscName}}{{#activeRecord}} extends BaseEntity{{/activeRecord}} {
+export {{defaultExport}} class {{toDtoName tscName}} {
 
 {{#columns}}{{> Field}}{{/columns~}}
 {{#relations}}{{> Relation}}{{/relations~}}
@@ -24,6 +24,6 @@ export {{defaultExport}} class {{toDtoName tscName}}{{#activeRecord}} extends Ba
 }
 {{/inline}}
 
-import {Boolean,Field,Float,InputType,Int,String} from "@nestjs/graphql";
+import {Boolean,Field,Float,InputType,Int} from "@nestjs/graphql";
 
 {{> Entity}}
