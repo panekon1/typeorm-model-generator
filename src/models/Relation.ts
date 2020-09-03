@@ -9,4 +9,5 @@ export type Relation = {
     relationOptions?: RelationOptions;
     joinColumnOptions?: Required<JoinColumnOptions>[];
     joinTableOptions?: JoinTableMultipleColumnsOptions;
+    isOneToMany: boolean;
 };

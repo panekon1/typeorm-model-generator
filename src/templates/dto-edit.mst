@@ -1,0 +1,29 @@
+{{#*inline "Field"}}
+{{^generated}}
+@Field(() => {{gqlType}})
+{{printPropertyVisibility}}{{toPropertyName tscName}}?{{strictMode}}:{{tscType}}{{#if options.nullable}} | null{{/if}};
+{{/generated}}
+
+{{/inline}}
+
+{{#*inline "Relation"}}
+{{^isOneToMany}}
+@Field(()=>{{toRelationIdGqlType relationType}})
+{{printPropertyVisibility}}{{toPropertyName fieldName}}?{{strictMode}}:{{toRelationId relationType}};
+{{/isOneToMany}}
+
+{{/inline}}
+
+{{#*inline "Entity"}}
+@InputType()
+export {{defaultExport}} class {{toDtoName tscName}}{{#activeRecord}} extends BaseEntity{{/activeRecord}} {
+
+{{#columns}}{{> Field}}{{/columns~}}
+{{#relations}}{{> Relation}}{{/relations~}}
+{{#relationIds}}{{> RelationId entityName=../tscName}}{{/relationIds~}}
+}
+{{/inline}}
+
+import {Boolean,Field,Float,InputType,Int,String} from "@nestjs/graphql";
+
+{{> Entity}}

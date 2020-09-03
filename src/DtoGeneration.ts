@@ -8,6 +8,7 @@ import IConnectionOptions from "./IConnectionOptions";
 import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
 import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
+import { toDirName } from "./common";
 
 const prettierOptions: Prettier.Options = {
     parser: "typescript",
@@ -19,15 +20,45 @@ export default function dtoGenerationPhase(
     generationOptions: IGenerationOptions,
     databaseModel: Entity[]
 ): void {
-    console.log("DTO");
     createHandlebarsHelpers(generationOptions);
 
     const resultPath = generationOptions.resultsPath;
-    const dtoPath = path.resolve(resultPath, "./dto");
-    if (!fs.existsSync(dtoPath)) {
-        fs.mkdirSync(dtoPath);
+    if (!fs.existsSync(resultPath)) {
+        fs.mkdirSync(resultPath);
     }
-    generateDtos(databaseModel, generationOptions, dtoPath);
+    generateDtos(databaseModel, generationOptions, resultPath);
+}
+
+function generateDto(
+    element: Entity,
+    generationOptions: IGenerationOptions,
+    filePath: string,
+    template: HandlebarsTemplateDelegate<any>
+) {
+    const rendered = template(element);
+    const withImportStatements = removeUnusedImports(
+        EOL !== eolConverter[generationOptions.convertEol]
+            ? rendered.replace(
+                  /(\r\n|\n|\r)/gm,
+                  eolConverter[generationOptions.convertEol]
+              )
+            : rendered
+    );
+    let formatted = "";
+    try {
+        formatted = Prettier.format(withImportStatements, prettierOptions);
+    } catch (error) {
+        console.error(
+            "There were some problems with model generation for table: ",
+            element.sqlName
+        );
+        console.error(error);
+        formatted = withImportStatements;
+    }
+    fs.writeFileSync(filePath, formatted, {
+        encoding: "utf-8",
+        flag: "w",
+    });
 }
 
 function generateDtos(
@@ -35,41 +66,42 @@ function generateDtos(
     generationOptions: IGenerationOptions,
     entitiesPath: string
 ) {
-    const entityTemplatePath = path.resolve(__dirname, "templates", "dto.mst");
-    const entityTemplate = fs.readFileSync(entityTemplatePath, "utf-8");
-    const entityCompliedTemplate = Handlebars.compile(entityTemplate, {
+    const dtoTemplatePath = path.resolve(__dirname, "templates", "dto.mst");
+    const dtoTemplate = fs.readFileSync(dtoTemplatePath, "utf-8");
+    const dtoCompiledTemplate = Handlebars.compile(dtoTemplate, {
+        noEscape: true,
+    });
+    const dtoEditTemplatePath = path.resolve(
+        __dirname,
+        "templates",
+        "dto-edit.mst"
+    );
+    const dtoEditTemplate = fs.readFileSync(dtoEditTemplatePath, "utf-8");
+    const dtoEditCompiledTemplate = Handlebars.compile(dtoEditTemplate, {
         noEscape: true,
     });
     databaseModel.forEach((element) => {
-        const casedFileName = toDtoFilename(element.tscName);
-        const resultFilePath = path.resolve(
-            entitiesPath,
-            `${casedFileName}.ts`
-        );
-        const rendered = entityCompliedTemplate(element);
-        const withImportStatements = removeUnusedImports(
-            EOL !== eolConverter[generationOptions.convertEol]
-                ? rendered.replace(
-                      /(\r\n|\n|\r)/gm,
-                      eolConverter[generationOptions.convertEol]
-                  )
-                : rendered
-        );
-        let formatted = "";
-        try {
-            formatted = Prettier.format(withImportStatements, prettierOptions);
-        } catch (error) {
-            console.error(
-                "There were some problems with model generation for table: ",
-                element.sqlName
-            );
-            console.error(error);
-            formatted = withImportStatements;
+        const dirName = toDirName(element.tscName);
+        const dirPath = path.resolve(entitiesPath, dirName);
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath);
         }
-        fs.writeFileSync(resultFilePath, formatted, {
-            encoding: "utf-8",
-            flag: "w",
-        });
+        const dtoFileName = toDtoFilename(element.tscName);
+        const dtoFilePath = path.resolve(dirPath, `${dtoFileName}.ts`);
+        const dtoEditFileName = toDtoEditFilename(element.tscName);
+        const dtoEditFilePath = path.resolve(dirPath, `${dtoEditFileName}.ts`);
+        generateDto(
+            element,
+            generationOptions,
+            dtoFilePath,
+            dtoCompiledTemplate
+        );
+        generateDto(
+            element,
+            generationOptions,
+            dtoEditFilePath,
+            dtoEditCompiledTemplate
+        );
     });
 }
 
@@ -90,8 +122,16 @@ function removeUnusedImports(rendered: string) {
     )}${restOfEntityDefinition}`;
 }
 
+function toDtoName(str) {
+    return `${changeCase.pascalCase(str)}Dto`;
+}
+
 function toDtoFilename(str) {
     return `${changeCase.paramCase(str)}.dto`;
+}
+
+function toDtoEditFilename(str) {
+    return `${changeCase.paramCase(str)}-edit.dto`;
 }
 
 function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
@@ -100,10 +140,9 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
         const withoutQuotes = json.replace(/"([^(")"]+)":/g, "$1:");
         return withoutQuotes.slice(1, withoutQuotes.length - 1);
     });
-    Handlebars.registerHelper("toDtoName", (str) => {
-        return `${changeCase.pascalCase(str)}Dto`;
-    });
+    Handlebars.registerHelper("toDtoName", toDtoName);
     Handlebars.registerHelper("toDtoFileName", toDtoFilename);
+    Handlebars.registerHelper("toDirName", toDirName);
     Handlebars.registerHelper("printPropertyVisibility", () =>
         generationOptions.propertyVisibility !== "none"
             ? `${generationOptions.propertyVisibility} `
@@ -127,6 +166,10 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             default:
                 throw new Error("Unknown case style");
         }
+        // eslint-disable-next-line no-restricted-globals
+        if (!isNaN(+retStr[0])) {
+            retStr = `_${retStr}`;
+        }
         return retStr;
     });
     Handlebars.registerHelper(
@@ -136,10 +179,34 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             if (relationType === "ManyToMany" || relationType === "OneToMany") {
                 retVal = `${retVal}[]`;
             }
-            if (generationOptions.lazy) {
-                retVal = `Promise<${retVal}>`;
-            }
             return retVal;
+        }
+    );
+    Handlebars.registerHelper(
+        "toRelationId",
+        (relationType: Relation["relationType"]) => {
+            if (relationType === "ManyToMany" || relationType === "OneToMany") {
+                return `number[]`;
+            }
+            return `number`;
+        }
+    );
+    Handlebars.registerHelper(
+        "toRelationIdGqlType",
+        (relationType: Relation["relationType"]) => {
+            if (relationType === "ManyToMany" || relationType === "OneToMany") {
+                return `[Int]`;
+            }
+            return `Int`;
+        }
+    );
+    Handlebars.registerHelper(
+        "toRelationGqlType",
+        (entityType: string, relationType: Relation["relationType"]) => {
+            if (relationType === "ManyToMany" || relationType === "OneToMany") {
+                return `[${toDtoName(entityType)}]`;
+            }
+            return toDtoName(entityType);
         }
     );
     Handlebars.registerHelper("defaultExport", () =>

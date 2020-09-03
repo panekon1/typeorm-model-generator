@@ -1,5 +1,5 @@
 {{#*inline "Import"}}
-import {{localImport (toDtoName .)}} from './{{toDtoFileName .}}'
+import {{localImport (toDtoName .)}} from '../{{toDirName .}}/{{toDtoFileName .}}'
 {{/inline}}
 
 {{#*inline "Field"}}
@@ -9,13 +9,13 @@ import {{localImport (toDtoName .)}} from './{{toDtoFileName .}}'
 {{/inline}}
 
 {{#*inline "Relation"}}
-@Field(()=>{{toDtoName relatedTable}})
+@Field(()=>{{toRelationGqlType relatedTable relationType}})
 {{printPropertyVisibility}}{{toPropertyName fieldName}}{{strictMode}}:{{toRelation (toDtoName relatedTable) relationType}};
 
 {{/inline}}
 
 {{#*inline "Entity"}}
-@ObjectType
+@ObjectType()
 export {{defaultExport}} class {{toDtoName tscName}}{{#activeRecord}} extends BaseEntity{{/activeRecord}} {
 
 {{#columns}}{{> Field}}{{/columns~}}

@@ -350,6 +350,7 @@ export default abstract class AbstractDriver {
                 }),
                 relatedTable: relationTmp.relatedTable.tscName,
                 relationType: isOneToMany ? "ManyToOne" : "OneToOne",
+                isOneToMany,
             };
             if (JSON.stringify(relationOptions) !== "{}") {
                 ownerRelation.relationOptions = relationOptions;
@@ -359,6 +360,7 @@ export default abstract class AbstractDriver {
                 relatedField: ownerRelation.fieldName,
                 relatedTable: relationTmp.ownerTable.tscName,
                 relationType: isOneToMany ? "OneToMany" : "OneToOne",
+                isOneToMany,
             };
 
             ownerEntity.relations.push(ownerRelation);

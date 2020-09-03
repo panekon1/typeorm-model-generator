@@ -8,6 +8,7 @@ import IConnectionOptions from "./IConnectionOptions";
 import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
 import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
+import { toDirName } from "./common";
 
 const prettierOptions: Prettier.Options = {
     parser: "typescript",
@@ -25,19 +26,14 @@ export default function modelGenerationPhase(
     if (!fs.existsSync(resultPath)) {
         fs.mkdirSync(resultPath);
     }
-    let entitiesPath = resultPath;
     if (!generationOptions.noConfigs) {
         createTsConfigFile(resultPath);
         createTypeOrmConfig(resultPath, connectionOptions);
-        entitiesPath = path.resolve(resultPath, "./entities");
-        if (!fs.existsSync(entitiesPath)) {
-            fs.mkdirSync(entitiesPath);
-        }
     }
     if (generationOptions.indexFile) {
-        createIndexFile(databaseModel, generationOptions, entitiesPath);
+        createIndexFile(databaseModel, generationOptions, resultPath);
     }
-    generateModels(databaseModel, generationOptions, entitiesPath);
+    generateModels(databaseModel, generationOptions, resultPath);
 }
 
 function generateModels(
@@ -55,27 +51,13 @@ function generateModels(
         noEscape: true,
     });
     databaseModel.forEach((element) => {
-        let casedFileName = "";
-        switch (generationOptions.convertCaseFile) {
-            case "camel":
-                casedFileName = changeCase.camelCase(element.tscName);
-                break;
-            case "param":
-                casedFileName = changeCase.paramCase(element.tscName);
-                break;
-            case "pascal":
-                casedFileName = changeCase.pascalCase(element.tscName);
-                break;
-            case "none":
-                casedFileName = element.tscName;
-                break;
-            default:
-                throw new Error("Unknown case style");
+        const dirName = toDirName(element.tscName);
+        const casedFileName = toEntityFilename(element.tscName);
+        const dirPath = path.resolve(entitiesPath, dirName);
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath);
         }
-        const resultFilePath = path.resolve(
-            entitiesPath,
-            `${casedFileName}.ts`
-        );
+        const resultFilePath = path.resolve(dirPath, `${casedFileName}.ts`);
         const rendered = entityCompliedTemplate(element);
         const withImportStatements = removeUnusedImports(
             EOL !== eolConverter[generationOptions.convertEol]
@@ -152,6 +134,10 @@ function removeUnusedImports(rendered: string) {
     )}${restOfEntityDefinition}`;
 }
 
+function toEntityFilename(str) {
+    return `${changeCase.paramCase(str)}.entity`;
+}
+
 function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
     Handlebars.registerHelper("json", (context) => {
         const json = JSON.stringify(context);
@@ -175,32 +161,14 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
         }
         return retStr;
     });
-    Handlebars.registerHelper("toFileName", (str) => {
-        let retStr = "";
-        switch (generationOptions.convertCaseFile) {
-            case "camel":
-                retStr = changeCase.camelCase(str);
-                break;
-            case "param":
-                retStr = changeCase.paramCase(str);
-                break;
-            case "pascal":
-                retStr = changeCase.pascalCase(str);
-                break;
-            case "none":
-                retStr = str;
-                break;
-            default:
-                throw new Error("Unknown case style");
-        }
-        return retStr;
-    });
+    Handlebars.registerHelper("toEntityFilename", toEntityFilename);
+    Handlebars.registerHelper("toDirName", toDirName);
     Handlebars.registerHelper("printPropertyVisibility", () =>
         generationOptions.propertyVisibility !== "none"
             ? `${generationOptions.propertyVisibility} `
             : ""
     );
-    Handlebars.registerHelper("toPropertyName", (str) => {
+    Handlebars.registerHelper("toPropertyName", (str: string) => {
         let retStr = "";
         switch (generationOptions.convertCaseProperty) {
             case "camel":
@@ -217,6 +185,10 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
                 break;
             default:
                 throw new Error("Unknown case style");
+        }
+        // eslint-disable-next-line no-restricted-globals
+        if (!isNaN(+retStr[0])) {
+            retStr = `_${retStr}`;
         }
         return retStr;
     });
