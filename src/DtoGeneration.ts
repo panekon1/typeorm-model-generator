@@ -8,11 +8,9 @@ import IConnectionOptions from "./IConnectionOptions";
 import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
 import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
+import { prettierOptions } from "./Utils";
 
-const prettierOptions: Prettier.Options = {
-    parser: "typescript",
-    endOfLine: "auto",
-};
+const prefix = "";
 
 export default function dtoGenerationPhase(
     connectionOptions: IConnectionOptions,
@@ -33,18 +31,10 @@ function generateDtos(
     generationOptions: IGenerationOptions,
     entitiesPath: string
 ) {
+    // Get
     const dtoTemplatePath = path.resolve(__dirname, "templates", "dto.mst");
     const dtoTemplate = fs.readFileSync(dtoTemplatePath, "utf-8");
     const dtoCompiledTemplate = Handlebars.compile(dtoTemplate, {
-        noEscape: true,
-    });
-    const dtoEditTemplatePath = path.resolve(
-        __dirname,
-        "templates",
-        "dto-edit.mst"
-    );
-    const dtoEditTemplate = fs.readFileSync(dtoEditTemplatePath, "utf-8");
-    const dtoEditCompiledTemplate = Handlebars.compile(dtoEditTemplate, {
         noEscape: true,
     });
     databaseModel.forEach((element) => {
@@ -55,19 +45,11 @@ function generateDtos(
         }
         const dtoFileName = toDtoFilename(element.tscName);
         const dtoFilePath = path.resolve(dirPath, `${dtoFileName}.ts`);
-        const dtoEditFileName = toDtoEditFilename(element.tscName);
-        const dtoEditFilePath = path.resolve(dirPath, `${dtoEditFileName}.ts`);
         generateDto(
             element,
             generationOptions,
             dtoFilePath,
             dtoCompiledTemplate
-        );
-        generateDto(
-            element,
-            generationOptions,
-            dtoEditFilePath,
-            dtoEditCompiledTemplate
         );
     });
 }
@@ -121,20 +103,36 @@ function removeUnusedImports(rendered: string) {
     )}${restOfEntityDefinition}`;
 }
 
-function toDtoDirName(tscName: string) {
-    return `${changeCase.paramCase(tscName)}/dto`;
+function prefixFilter(str) {
+    return `${prefix}${str}`;
+}
+
+function toDtoDirName(str: string) {
+    return `${changeCase.paramCase(prefixFilter(str))}`;
 }
 
 function toDtoName(str) {
-    return `${changeCase.pascalCase(str)}Dto`;
+    return `${changeCase.pascalCase(prefixFilter(str))}Dto`;
+}
+
+function toDtoEditName(str) {
+    return `${changeCase.pascalCase(prefixFilter(str))}EditDto`;
+}
+
+function toDtoCreateName(str) {
+    return `${changeCase.pascalCase(prefixFilter(str))}CreateDto`;
+}
+
+function toDtoWhereName(str) {
+    return `${changeCase.pascalCase(prefixFilter(str))}WhereDto`;
 }
 
 function toDtoFilename(str) {
-    return `${changeCase.paramCase(str)}.dto`;
+    return `${changeCase.paramCase(prefixFilter(str))}.dto`;
 }
 
 function toDtoEditFilename(str) {
-    return `${changeCase.paramCase(str)}-edit.dto`;
+    return `${changeCase.paramCase(prefixFilter(str))}-edit.dto`;
 }
 
 function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
@@ -144,7 +142,11 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
         return withoutQuotes.slice(1, withoutQuotes.length - 1);
     });
     Handlebars.registerHelper("toDtoName", toDtoName);
+    Handlebars.registerHelper("toDtoEditName", toDtoEditName);
+    Handlebars.registerHelper("toDtoCreateName", toDtoCreateName);
+    Handlebars.registerHelper("toDtoWhereName", toDtoWhereName);
     Handlebars.registerHelper("toDtoFileName", toDtoFilename);
+    Handlebars.registerHelper("toDtoEditFileName", toDtoEditFilename);
     Handlebars.registerHelper("toDtoDirName", toDtoDirName);
     Handlebars.registerHelper("printPropertyVisibility", () =>
         generationOptions.propertyVisibility !== "none"
@@ -152,23 +154,7 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             : ""
     );
     Handlebars.registerHelper("toPropertyName", (str) => {
-        let retStr = "";
-        switch (generationOptions.convertCaseProperty) {
-            case "camel":
-                retStr = changeCase.camelCase(str);
-                break;
-            case "pascal":
-                retStr = changeCase.pascalCase(str);
-                break;
-            case "none":
-                retStr = str;
-                break;
-            case "snake":
-                retStr = changeCase.snakeCase(str);
-                break;
-            default:
-                throw new Error("Unknown case style");
-        }
+        let retStr = changeCase.snakeCase(str);
         // eslint-disable-next-line no-restricted-globals
         if (!isNaN(+retStr[0])) {
             retStr = `_${retStr}`;

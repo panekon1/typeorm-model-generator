@@ -1,5 +1,7 @@
+
+{{! DTO }}
 {{#*inline "Import"}}
-import {{localImport (toDtoName .)}} from '../../{{toDtoDirName .}}/{{toDtoFileName .}}'
+import {{localImport (toDtoName .)}} from '../{{toDtoDirName .}}/{{toDtoFileName .}}'
 {{/inline}}
 
 {{#*inline "Field"}}
@@ -14,17 +16,91 @@ import {{localImport (toDtoName .)}} from '../../{{toDtoDirName .}}/{{toDtoFileN
 
 {{/inline}}
 
-{{#*inline "Entity"}}
+{{#*inline "Dto"}}
 @ObjectType()
 export {{defaultExport}} class {{toDtoName tscName}} {
 
 {{#columns}}{{> Field}}{{/columns~}}
 {{#relations}}{{> Relation}}{{/relations~}}
-{{#relationIds}}{{> RelationId entityName=../tscName}}{{/relationIds~}}
 }
 {{/inline}}
 
-import {Boolean,Field,Float,Int,ObjectType} from "@nestjs/graphql";
+{{! CREATE DTO }}
+
+{{#*inline "CreateField"}}
+{{^generated}}
+@Field(() => {{gqlType}}{{#if options.nullable}}, { nullable: true }{{/if}})
+{{printPropertyVisibility}}{{toPropertyName tscName}}{{#if options.nullable}}?{{/if}}{{strictMode}}:{{tscType}}{{#if options.nullable}} | null{{/if}};
+{{/generated}}
+
+{{/inline}}
+
+{{#*inline "CreateRelation"}}
+{{^isOneToMany}}
+@Field(()=>{{toRelationIdGqlType relationType}}{{#if options.nullable}}, { nullable: true }{{/if}})
+{{printPropertyVisibility}}{{toPropertyName fieldName}}{{#if options.nullable}}?{{/if}}{{strictMode}}:{{toRelationId relationType}};
+{{/isOneToMany}}
+
+{{/inline}}
+
+{{#*inline "CreateDto"}}
+@InputType()
+export {{defaultExport}} class {{toDtoCreateName tscName}} {
+
+{{#columns}}{{> CreateField}}{{/columns~}}
+{{#relations}}{{> CreateRelation}}{{/relations~}}
+}
+{{/inline}}
+
+{{! EDIT DTO }}
+
+{{#*inline "EditField"}}
+{{^generated}}
+@Field(() => {{gqlType}}, { nullable: true })
+{{printPropertyVisibility}}{{toPropertyName tscName}}?{{strictMode}}:{{tscType}}{{#if options.nullable}} | null{{/if}};
+{{/generated}}
+
+{{/inline}}
+
+{{#*inline "EditRelation"}}
+{{^isOneToMany}}
+@Field(()=>{{toRelationIdGqlType relationType}}, { nullable: true })
+{{printPropertyVisibility}}{{toPropertyName fieldName}}?{{strictMode}}:{{toRelationId relationType}};
+{{/isOneToMany}}
+
+{{/inline}}
+
+{{#*inline "EditDto"}}
+@InputType()
+export {{defaultExport}} class {{toDtoEditName tscName}} {
+
+{{#columns}}{{> EditField}}{{/columns~}}
+{{#relations}}{{> EditRelation}}{{/relations~}}
+}
+{{/inline}}
+
+{{! WHERE DTO }}
+
+{{#*inline "WhereDto"}}
+@InputType()
+export {{defaultExport}} class {{toDtoWhereName tscName}} extends {{toDtoEditName tscName}} {
+
+    @Field(() => Int, { nullable: true })
+	id?: number;
+
+    @Field(() => [Int], { nullable: true })
+	ids?: number[];
+
+}
+{{/inline}}
+
+import {Field,Float,InputType,Int,ObjectType} from "@nestjs/graphql";
 {{#fileImports}}{{> Import}}{{/fileImports}}
 
-{{> Entity}}
+{{> Dto}}
+
+{{> CreateDto}}
+
+{{> EditDto}}
+
+{{> WhereDto}}

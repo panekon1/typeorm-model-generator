@@ -8,11 +8,9 @@ import IConnectionOptions from "./IConnectionOptions";
 import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
 import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
+import { prettierOptions } from "./Utils";
 
-const prettierOptions: Prettier.Options = {
-    parser: "typescript",
-    endOfLine: "auto",
-};
+const prefix = "";
 
 export default function modelGenerationPhase(
     connectionOptions: IConnectionOptions,
@@ -35,8 +33,8 @@ export default function modelGenerationPhase(
     generateModels(databaseModel, generationOptions, resultPath);
 }
 
-function toDirName(tscName: string) {
-    return changeCase.paramCase(tscName);
+function toDirName(str: string) {
+    return changeCase.paramCase(prefixFilter(str));
 }
 
 function generateModels(
@@ -86,6 +84,10 @@ function generateModels(
             flag: "w",
         });
     });
+}
+
+function prefixFilter(str) {
+    return `${prefix}${str}`;
 }
 
 function createIndexFile(
@@ -138,7 +140,7 @@ function removeUnusedImports(rendered: string) {
 }
 
 function toEntityFilename(str) {
-    return `${changeCase.paramCase(str)}.entity`;
+    return `${changeCase.paramCase(prefixFilter(str))}.entity`;
 }
 
 function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
@@ -148,6 +150,7 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
         return withoutQuotes.slice(1, withoutQuotes.length - 1);
     });
     Handlebars.registerHelper("toEntityName", (str) => {
+        str = prefixFilter(str);
         let retStr = "";
         switch (generationOptions.convertCaseEntity) {
             case "camel":
@@ -162,7 +165,7 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             default:
                 throw new Error("Unknown case style");
         }
-        return retStr;
+        return `${retStr}Entity`;
     });
     Handlebars.registerHelper("toEntityFilename", toEntityFilename);
     Handlebars.registerHelper("toDirName", toDirName);
@@ -172,23 +175,7 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             : ""
     );
     Handlebars.registerHelper("toPropertyName", (str: string) => {
-        let retStr = "";
-        switch (generationOptions.convertCaseProperty) {
-            case "camel":
-                retStr = changeCase.camelCase(str);
-                break;
-            case "pascal":
-                retStr = changeCase.pascalCase(str);
-                break;
-            case "none":
-                retStr = str;
-                break;
-            case "snake":
-                retStr = changeCase.snakeCase(str);
-                break;
-            default:
-                throw new Error("Unknown case style");
-        }
+        let retStr = changeCase.snakeCase(str);
         // eslint-disable-next-line no-restricted-globals
         if (!isNaN(+retStr[0])) {
             retStr = `_${retStr}`;

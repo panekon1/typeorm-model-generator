@@ -1,5 +1,6 @@
 import * as changeCase from "change-case";
 import * as path from "path";
+import * as Prettier from "prettier";
 import * as packagejson from "../package.json";
 import { Entity } from "./models/Entity";
 
@@ -80,3 +81,12 @@ export function requireLocalFile(fileName: string): any {
         throw err;
     }
 }
+
+export const prettierOptions: Prettier.Options = {
+    parser: "typescript",
+    endOfLine: "auto",
+    useTabs: true,
+    tabWidth: 4,
+    singleQuote: true,
+    trailingComma: "all",
+};
