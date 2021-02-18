@@ -333,6 +333,7 @@ export default abstract class AbstractDriver {
             const relationOptions: RelationOptions = {
                 onDelete: relationTmp.onDelete,
                 onUpdate: relationTmp.onUpdate,
+                nullable: relationTmp.nullable,
             };
 
             const ownerRelation: Relation = {

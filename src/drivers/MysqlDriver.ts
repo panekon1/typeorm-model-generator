@@ -462,6 +462,11 @@ export default class MysqlDriver extends AbstractDriver {
                 internal.ownerColumns.push(row.ForeignKeyColumn);
                 internal.relatedColumns.push(row.ForeignKeyColumnReferenced);
             });
+            internal.nullable = ownerTable.columns
+                .filter((c) =>
+                    internal.ownerColumns.find((oc) => c.options.name === oc)
+                )
+                .some((c) => c.options.nullable);
             relationsTemp.push(internal);
         });
 

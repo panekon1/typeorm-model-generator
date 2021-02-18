@@ -9,4 +9,5 @@ export type RelationInternal = {
     relatedColumns: string[];
     onDelete?: OnDeleteType;
     onUpdate?: OnUpdateType;
+    nullable?: boolean;
 };
