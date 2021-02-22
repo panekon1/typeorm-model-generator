@@ -6,6 +6,7 @@ import * as path from "path";
 import * as Prettier from "prettier";
 import IConnectionOptions from "./IConnectionOptions";
 import IGenerationOptions, { eolConverter } from "./IGenerationOptions";
+import { Column } from "./models/Column";
 import { Entity } from "./models/Entity";
 import { Relation } from "./models/Relation";
 import { prettierOptions } from "./Utils";
@@ -135,6 +136,35 @@ function toDtoEditFilename(str) {
     return `${changeCase.paramCase(prefixFilter(str))}-edit.dto`;
 }
 
+function toDtoBody(cols: Column[]): string {
+    return cols
+        .map((c: Column) => {
+            let name = c.tscName;
+
+            if (name === "event_participant") {
+                console.log(c);
+            }
+
+            if (name === "7_rugby") {
+                name = "_7_rugby";
+            }
+            if (c.tscType === "String" || c.tscType === "string") {
+                return `@Field(() => SearchableString, { nullable: true })
+	${name}?: SearchableString;
+			`;
+            }
+            if (c.tscType === "number" || c.tscType === "Number") {
+                return `@Field(() => SearchableNumber, { nullable: true })
+	${name}?: SearchableNumber;
+			`;
+            }
+
+            return null;
+        })
+        .filter(Boolean)
+        .join("\n");
+}
+
 function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
     Handlebars.registerHelper("json", (context) => {
         const json = JSON.stringify(context);
@@ -145,6 +175,7 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
     Handlebars.registerHelper("toDtoEditName", toDtoEditName);
     Handlebars.registerHelper("toDtoCreateName", toDtoCreateName);
     Handlebars.registerHelper("toDtoWhereName", toDtoWhereName);
+    Handlebars.registerHelper("toDtoBody", toDtoBody);
     Handlebars.registerHelper("toDtoFileName", toDtoFilename);
     Handlebars.registerHelper("toDtoEditFileName", toDtoEditFilename);
     Handlebars.registerHelper("toDtoDirName", toDtoDirName);
@@ -211,6 +242,27 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             ? generationOptions.strictMode
             : ""
     );
+    Handlebars.registerHelper("toDtoFindWhere", (cols: Column[]) => {
+        const map: any = {};
+        cols.forEach((c: Column) => {
+            if (c.tscType === "number" || c.tscType === "Number") {
+                map.SearchableNumber = true;
+            } else if (c.tscType === "String" || c.tscType === "string") {
+                map.SearchableString = true;
+            }
+        });
+
+        return Object.keys(map)
+            .map((k: string) => {
+                if (map[k]) {
+                    return k;
+                }
+                return null;
+            })
+            .filter(Boolean)
+            .reverse()
+            .join(", ");
+    });
     Handlebars.registerHelper({
         and: (v1, v2) => v1 && v2,
         eq: (v1, v2) => v1 === v2,

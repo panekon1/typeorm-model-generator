@@ -83,19 +83,17 @@ export {{defaultExport}} class {{toDtoEditName tscName}} {
 
 {{#*inline "WhereDto"}}
 @InputType()
-export {{defaultExport}} class {{toDtoWhereName tscName}} extends {{toDtoEditName tscName}} {
+export {{defaultExport}} class {{toDtoWhereName tscName}} {
 
-    @Field(() => Int, { nullable: true })
-	id?: number;
-
-    @Field(() => [Int], { nullable: true })
-	ids?: number[];
+	{{toDtoBody columns}}
 
 }
 {{/inline}}
 
 import {Field,Float,InputType,Int,ObjectType} from "@nestjs/graphql";
+import { {{ toDtoFindWhere columns }} } from 'core/find-where-dto';
 {{#fileImports}}{{> Import}}{{/fileImports}}
+
 
 {{> Dto}}
 

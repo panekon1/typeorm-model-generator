@@ -190,7 +190,8 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
                 retVal = `${retVal}[]`;
             }
             if (generationOptions.lazy) {
-                retVal = `Promise<${retVal}>`;
+                // retVal = `Promise<${retVal}>`;
+                retVal = `retVal | undefined`;
             }
             return retVal;
         }

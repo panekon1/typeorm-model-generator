@@ -1,4 +1,5 @@
 import * as Yargs from "yargs";
+import fs = require("fs-extra");
 import { createDriver, createModelFromDatabase } from "./Engine";
 import * as TomgUtils from "./Utils";
 import IConnectionOptions, {
@@ -8,7 +9,6 @@ import IGenerationOptions, {
     getDefaultGenerationOptions,
 } from "./IGenerationOptions";
 
-import fs = require("fs-extra");
 import inquirer = require("inquirer");
 import path = require("path");
 
@@ -32,6 +32,7 @@ async function CliLogic() {
     }
     options = validateConfig(options);
     const driver = createDriver(options.connectionOptions.databaseType);
+    console.log({ options });
     console.log(
         `[${new Date().toLocaleTimeString()}] Starting creation of model classes.`
     );
