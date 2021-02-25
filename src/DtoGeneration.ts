@@ -38,6 +38,7 @@ function generateDtos(
     const dtoCompiledTemplate = Handlebars.compile(dtoTemplate, {
         noEscape: true,
     });
+
     databaseModel.forEach((element) => {
         const dirName = toDtoDirName(element.tscName);
         const dirPath = path.resolve(entitiesPath, dirName);
@@ -159,6 +160,12 @@ function toDtoBody(cols: Column[]): string {
 			`;
             }
 
+            if (c.tscType === "Date" || c.tscType === "Date") {
+                return `@Field(() => SearchableDate, { nullable: true })
+	${name}?: SearchableDate;
+			`;
+            }
+
             return null;
         })
         .filter(Boolean)
@@ -232,10 +239,12 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
     Handlebars.registerHelper("defaultExport", () =>
         generationOptions.exportType === "default" ? "default" : ""
     );
-    Handlebars.registerHelper("localImport", (entityName: string) =>
-        generationOptions.exportType === "default"
-            ? entityName
-            : `{${entityName}}`
+    Handlebars.registerHelper(
+        "localImport",
+        (toDtoNameParam: string, toDtoWhereNameParam: string) =>
+            generationOptions.exportType === "default"
+                ? toDtoNameParam
+                : `{${toDtoNameParam}, ${toDtoWhereNameParam}} `
     );
     Handlebars.registerHelper("strictMode", () =>
         generationOptions.strictMode !== "none"
@@ -244,11 +253,14 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
     );
     Handlebars.registerHelper("toDtoFindWhere", (cols: Column[]) => {
         const map: any = {};
+
         cols.forEach((c: Column) => {
             if (c.tscType === "number" || c.tscType === "Number") {
                 map.SearchableNumber = true;
             } else if (c.tscType === "String" || c.tscType === "string") {
                 map.SearchableString = true;
+            } else if (c.tscType === "Date" || c.tscType === "Date") {
+                map.SearchableDate = true;
             }
         });
 

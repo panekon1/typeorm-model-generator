@@ -1,9 +1,13 @@
 import { DataTypeDefaults } from "typeorm/driver/types/DataTypeDefaults";
 import { DefaultNamingStrategy } from "typeorm/naming-strategy/DefaultNamingStrategy";
+import * as changeCase from "change-case";
 import { Entity } from "./models/Entity";
 import IGenerationOptions from "./IGenerationOptions";
 import * as NamingStrategy from "./NamingStrategy";
 import * as TomgUtils from "./Utils";
+import { Relation } from "./models/Relation";
+import { Column } from "./models/Column";
+import { RelationId } from "./library";
 
 export default function modelCustomizationPhase(
     dbModel: Entity[],
@@ -82,6 +86,7 @@ export default function modelCustomizationPhase(
     retVal = applyNamingStrategy(namingStrategy, dbModel);
     retVal = addImportsAndGenerationOptions(retVal, generationOptions);
     retVal = removeColumnDefaultProperties(retVal, defaultValues);
+    retVal = removeIngoredTables(retVal);
     return retVal;
 }
 function removeIndicesGeneratedByTypeorm(dbModel: Entity[]): Entity[] {
@@ -340,3 +345,62 @@ function applyNamingStrategy(
         return entities;
     }
 }
+
+const IGNORE = [
+    "alert_move_to_page_checker",
+    "stats_row",
+    "stats_row_index",
+    "stats_row_ref_event_incident_subtype",
+    "stats_row_ref_event_incident_type",
+    "stats_row_ref_event_participant",
+    "stats_row_ref_event_partnership",
+    "stats_row_ref_event_stage",
+    "stats_row_ref_highlight",
+    "stats_row_ref_participant",
+    "stats_row_ref_season",
+    "stats_row_ref_stats_value_type",
+    "stats_row_ref_tournament",
+    "stats_row_ref_tournament_stage",
+    "stats_row_ref_tournament_stage_group",
+];
+
+const removeIngoredTables = (model: Entity[]): Entity[] => {
+    const tmpModel = model.filter((m: Entity) => !IGNORE.includes(m.sqlName));
+
+    return tmpModel.map((e: Entity) => {
+        const fieldNamesToRemove: string[] = [];
+
+        const relations = e.relations.filter((r: Relation) => {
+            const remove = !IGNORE.includes(r.relatedTable);
+            if (!remove) {
+                fieldNamesToRemove.push(changeCase.snakeCase(r.fieldName));
+
+                // tady je prilepene 's' za nazvem relace, nechápu proč, tak ho zde ondstranuji
+                // stats_row_ref_tournament_stage_groups vs stats_row_ref_tournament_stage_group
+                fieldNamesToRemove.push(
+                    changeCase.snakeCase(r.fieldName).slice(0, -1)
+                );
+            }
+
+            return remove;
+        });
+
+        const relationIds = e.relationIds.filter(
+            (r: RelationId) => !fieldNamesToRemove.includes(r.fieldName)
+        );
+        const columns = e.columns.filter(
+            (c: Column) => !fieldNamesToRemove.includes(c.options.name)
+        );
+        const fileImports = e.fileImports.filter(
+            (v: string) => !fieldNamesToRemove.includes(v)
+        );
+
+        return {
+            ...e,
+            relations,
+            columns,
+            relationIds,
+            fileImports,
+        };
+    });
+};

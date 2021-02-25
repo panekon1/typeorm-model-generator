@@ -1,7 +1,7 @@
 
 {{! DTO }}
 {{#*inline "Import"}}
-import {{localImport (toDtoName .)}} from '../{{toDtoDirName .}}/{{toDtoFileName .}}'
+import {{localImport (toDtoName .) (toDtoWhereName . )}} from '../{{toDtoDirName .}}/{{toDtoFileName .}}'
 {{/inline}}
 
 {{#*inline "Field"}}
@@ -13,6 +13,12 @@ import {{localImport (toDtoName .)}} from '../{{toDtoDirName .}}/{{toDtoFileName
 {{#*inline "Relation"}}
 @Field(()=>{{toRelationGqlType relatedTable relationType}}, {{#if relationOptions.nullable}}{ nullable: true }{{/if}})
 {{printPropertyVisibility}}{{toPropertyName fieldName}}{{strictMode}}:{{toRelation (toDtoName relatedTable) relationType}}{{#if relationOptions.nullable}}| null{{/if}};
+
+{{/inline}}
+
+{{#*inline "WhereRelation"}}
+@Field(()=>{{toDtoWhereName relatedTable relationType}}, { nullable: true })
+{{printPropertyVisibility}}{{toPropertyName fieldName}}{{strictMode}}?:{{toRelation (toDtoWhereName relatedTable)}};
 
 {{/inline}}
 
@@ -85,6 +91,7 @@ export {{defaultExport}} class {{toDtoEditName tscName}} {
 @InputType()
 export {{defaultExport}} class {{toDtoWhereName tscName}} {
 
+	{{#relations}}{{> WhereRelation}}{{/relations~}}
 	{{toDtoBody columns}}
 
 }

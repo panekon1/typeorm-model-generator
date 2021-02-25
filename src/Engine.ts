@@ -50,11 +50,13 @@ export async function createModelFromDatabase(
         );
         return;
     }
+
     dbModel = modelCustomizationPhase(
         dbModel,
         generationOptions,
         driver.defaultValues
     );
+
     modelGenerationPhase(connectionOptions, generationOptions, dbModel);
     dtoGenerationPhase(connectionOptions, generationOptions, dbModel);
 }
