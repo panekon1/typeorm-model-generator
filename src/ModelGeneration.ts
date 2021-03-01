@@ -204,6 +204,23 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
             ? entityName
             : `{${entityName}}`
     );
+    Handlebars.registerHelper(
+        "getEntityRelationOptions",
+        (relationsOptions: {
+            onDelete?: string;
+            onUpdate?: string;
+            nullable?: boolean;
+        }) => {
+            const strigArr: string[] = [];
+            if (relationsOptions.onDelete) {
+                strigArr.push(`onDelete: "${relationsOptions.onDelete}"`);
+            }
+            if (relationsOptions.onUpdate) {
+                strigArr.push(`onUpdate: "${relationsOptions.onUpdate}"`);
+            }
+            return strigArr.join(", ");
+        }
+    );
     Handlebars.registerHelper("strictMode", () =>
         generationOptions.strictMode !== "none"
             ? generationOptions.strictMode

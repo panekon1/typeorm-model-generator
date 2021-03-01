@@ -166,6 +166,12 @@ function toDtoBody(cols: Column[]): string {
 			`;
             }
 
+            if (c.tscType === "Boolean" || c.tscType === "boolean") {
+                return `@Field(() => SearchableBoolean, { nullable: true })
+	${name}?: SearchableBoolean;
+			`;
+            }
+
             return null;
         })
         .filter(Boolean)
@@ -261,6 +267,8 @@ function createHandlebarsHelpers(generationOptions: IGenerationOptions): void {
                 map.SearchableString = true;
             } else if (c.tscType === "Date" || c.tscType === "Date") {
                 map.SearchableDate = true;
+            } else if (c.tscType === "Boolean" || c.tscType === "boolean") {
+                map.SearchableBoolean = true;
             }
         });
 
